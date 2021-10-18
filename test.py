@@ -3,9 +3,13 @@ import string
 from nltk.tokenize import word_tokenize
 import random
 import math
+import numpy as np
 
 
+x = np.array([[1, 2, 3], 
+             [4, 5, 6],
+             [7, 8, 9]])
 
-for i in range(20):
-    pred = math.ceil(random.random() * 5)
-    print(pred)
+
+print(x.sum(axis = 0))
+print(x.sum(axis=1))

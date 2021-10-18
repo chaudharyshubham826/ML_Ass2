@@ -14,9 +14,11 @@ from nltk.corpus import stopwords
 
 class NaiveBayes:
     def __init__(self, path_train, path_test):
+        self.path_train = path_train
+        self.path_test = path_test
         print("Loading training data...")
         if not os.path.isfile("NB_simple_train.data"):
-            self.trainX, self.trainY = self.load_clean(path_train, "NB_simple_train.data")
+            self.trainX, self.trainY = self.load_clean(self.path_train, "NB_simple_train.data")
         else:
             self.trainX, self.trainY = pickle.load(open("NB_simple_train.data", "rb"))
 
@@ -25,7 +27,7 @@ class NaiveBayes:
         print("Loading test data...")
 
         if not os.path.isfile("NB_simple_test.data"):
-            self.testX, self.testY = self.load_clean(path_test, "NB_simple_test.data")
+            self.testX, self.testY = self.load_clean(self.path_test, "NB_simple_test.data")
         else:
             self.testX, self.testY = pickle.load(open("NB_simple_test.data", "rb"))
 
@@ -63,7 +65,7 @@ class NaiveBayes:
 
 
         # cleaning
-        X = self.remove_punctuations_tokenize(X)
+        X = self.remove_punctuations_tokenize1(X)
 
 
         # print(X[0])
@@ -75,7 +77,7 @@ class NaiveBayes:
         return X, Y
 
 
-    def remove_punctuations_tokenize(self, docs):
+    def remove_punctuations_tokenize1(self, docs):
 
         answer = []
         # print(docs)
@@ -368,7 +370,149 @@ class NaiveBayes:
 
 
     def part1d(self):
-        pass
+        #data loading
+        if not os.path.isfile("NB_stemmed_train.data"):
+
+            os.chdir(
+                "C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Music_reviews_json/reviews_Digital_Music_5.json")
+
+            X = []
+            Y = []
+
+            # print(os.getcwd())
+
+            with open(self.path_train, "r") as f:
+                for line in f:
+                    df = json.loads(line)
+                    X.append(df["reviewText"])
+                    Y.append(float(df["overall"]))
+
+            os.chdir("C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Q1")
+
+            # print("data loaded")
+
+            # cleaning
+            X = self.getStemmedDocuments(X, False)
+            X = self.remove_punctuations_tokenize(X)
+
+            # print(X[0])
+            # print(Y[0])
+
+            with open("NB_stemmed_train.data", 'wb') as file:
+                pickle.dump([X, Y], file)
+
+            self.trainX = X
+            self.trainY = Y
+        
+        else:
+            self.trainX, self.trainY = pickle.load(open("NB_stemmed_train.data", "rb"))
+
+        if not os.path.isfile("NB_stemmed_test.data"):
+
+            os.chdir(
+                "C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Music_reviews_json/reviews_Digital_Music_5.json")
+
+            X = []
+            Y = []
+
+            # print(os.getcwd())
+
+            with open(self.path_test, "r") as f:
+                for line in f:
+                    df = json.loads(line)
+                    X.append(df["reviewText"])
+                    Y.append(float(df["overall"]))
+
+            os.chdir("C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Q1")
+
+            # print("data loaded")
+
+            # cleaning
+            X = self.getStemmedDocuments(X, False)
+            X = self.remove_punctuations_tokenize(X)
+
+            # print(X[0])
+            # print(Y[0])
+
+            with open("NB_stemmed_test.data", 'wb') as file:
+                pickle.dump([X, Y], file)
+
+            self.testX = X
+            self.testY = Y
+
+        else:
+            self.testX, self.testY = pickle.load(
+                open("NB_stemmed_test.data", "rb"))
+
+
+        print("Stemmed data loaded...")
+
+        if not os.path.isfile("stemmed_NB.model"):
+            self.model = self.naiveBayes("stemmed_NB.model")
+        else:
+            self.model = pickle.load(open("stemmed_NB.model", "rb"))
+
+
+        # Predicting...
+
+        prior_probs = self.model[0]
+
+        # theta_list [dict(), dict(), dict(), dict(), dict()], each dict has words as keys and prob as value
+        theta_list = self.model[1]
+        total_unique_words_each_label = self.model[2]
+        total_unique_words = self.model[3]
+
+        # training data accuracy
+        train_data_prediction = self.predict(
+            self.trainX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.trainY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.trainY[i] == train_data_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+
+
+        train_accuracy = correct_predictions/len(self.trainY)
+        print("Accuracy on training data after Stemming and Stopwords removal:",
+              train_accuracy)
+
+        # test data accuracy
+        self.test_data_prediction = self.predict(
+            self.testX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.testY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.testY[i] == self.test_data_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+        self.test_accuracy = correct_predictions/len(self.testY)
+        print("Accuracy on test data after Stemming and Stopwords removal:", self.test_accuracy)
+
+        
+
+
+    def remove_punctuations_tokenize(self, docs):
+
+        answer = []
+
+        for text in docs:
+            data = [char for char in text if char not in string.punctuation]
+            data = ''.join(data)
+
+            #tokenize too
+            data = word_tokenize(data)
+            answer.append(data)
+
+        return answer
 
 
     def _stem(self, doc, p_stemmer, en_stop, return_tokens):
@@ -402,3 +546,271 @@ class NaiveBayes:
             return output_docs
         else:
             return self._stem(docs, p_stemmer, en_stop, return_tokens)
+
+
+
+    def feature1(self): # repeat first 10 words 5 times each
+        if not os.path.isfile("NB_stemmed_train.data"):
+            print("NB_stemmed_train.data not found!")
+            return
+        if not os.path.isfile("NB_stemmed_test.data"):
+            print("NB_stemmed_test.data not found!")
+            return
+
+        self.trainX, self.trainY = pickle.load(open("NB_stemmed_train.data", "rb"))
+        self.testX, self.testY = pickle.load(open("NB_stemmed_test.data", "rb"))
+
+        for i in range(len(self.trainX)):
+            # trainX[i] = ["it", 'is', 'ok']
+            till = min(len(self.trainX[i]), 10)
+            for j in range(till):
+                for _ in range(5):
+                    self.trainX[i].append(self.trainX[i][j])
+
+        if not os.path.isfile("feature1_NB.model"):
+            feature1_model = self.naiveBayes("feature1_NB.model")
+        else:
+            feature1_model = pickle.load(open("feature1_NB.model", "rb"))
+
+        print("Feature1 model learned...")
+
+        # prediction time
+        prior_probs = feature1_model[0]
+
+        # theta_list [dict(), dict(), dict(), dict(), dict()], each dict has words as keys and prob as value
+        theta_list = feature1_model[1]
+        total_unique_words_each_label = feature1_model[2]
+        total_unique_words = feature1_model[3]
+
+        labels_prediction = self.predict(
+            self.testX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.testY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.testY[i] == labels_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+        accuracy = correct_predictions/len(self.testY)
+        print("Accuracy on test data (feature1):", accuracy)
+
+
+
+    def feature2 (self):  # 
+        if not os.path.isfile("NB_stemmed_train.data"):
+            print("NB_stemmed_train.data not found!")
+            return
+        if not os.path.isfile("NB_stemmed_test.data"):
+            print("NB_stemmed_test.data not found!")
+            return
+
+        self.trainX, self.trainY = pickle.load(
+            open("NB_stemmed_train.data", "rb"))
+        self.testX, self.testY = pickle.load(
+            open("NB_stemmed_test.data", "rb"))
+
+        positive = ['not', 'never', 'bad', 'good', 'amazing', 'great', 'awesome', 'awful',
+                    'worst', 'nice', 'loved', 'hate', 'clean', 'like', 'soothing', 'beautiful']
+
+        for i in range(len(self.trainX)):
+            # trainX[i] = ["it", 'is', 'ok']
+            for j in range(len(self.trainX[i])):
+                if(self.trainX[i][j] in positive):
+                    # adding positive words 5 times
+                    for _ in range(5):
+                        self.trainX[i].append(self.trainX[i][j])
+
+        if not os.path.isfile("feature2_NB.model"):
+            feature2_model = self.naiveBayes("feature2_NB.model")
+        else:
+            feature2_model = pickle.load(open("feature2_NB.model", "rb"))
+
+        print("Feature2 model learned...")
+
+        # prediction time
+        prior_probs = feature2_model[0]
+
+        # theta_list [dict(), dict(), dict(), dict(), dict()], each dict has words as keys and prob as value
+        theta_list = feature2_model[1]
+        total_unique_words_each_label = feature2_model[2]
+        total_unique_words = feature2_model[3]
+
+        labels_prediction = self.predict(
+            self.testX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.testY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.testY[i] == labels_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+        accuracy = correct_predictions/len(self.testY)
+        print("Accuracy on test data (feature2):", accuracy)
+
+
+    def part1f(self):
+        best_model = pickle.load(open("stemmed_NB.model", "rb"))
+
+
+        cf_mat = np.zeros([5, 5])
+
+        for i in range(len(self.test_data_prediction)):
+            cf_mat[int(self.testY[i])-1][int(self.test_data_prediction[i])-1] += 1
+
+        row_sum = cf_mat.sum(axis= 1)
+        column_sum = cf_mat.sum(axis = 0)
+
+        precision = 0.0
+        recall = 0.0
+        f1_scores = []
+
+        for i in range(5):
+            precision = cf_mat[i][i] / column_sum[i]
+            recall = cf_mat[i][i] / row_sum[i]
+            print(precision, recall)
+
+            if(precision == 0.0):
+                f1_scores.append(0.0)
+                continue
+
+            f1_scores.append(2*precision*recall / (precision+recall))
+
+
+        for i in range(5):
+            print("F1-score for label {}:".format(float(i+1)), f1_scores[i])
+
+        print("Macro-F1 score:", np.mean(f1_scores))
+
+
+    def part1g(self):
+        #data loading
+        if not os.path.isfile("NB_stemmed_train_summary.data"):
+
+            os.chdir(
+                "C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Music_reviews_json/reviews_Digital_Music_5.json")
+
+            X = []
+            Y = []
+
+            # print(os.getcwd())
+
+            with open(self.path_train, "r") as f:
+                for line in f:
+                    df = json.loads(line)
+                    X.append(df["summary"])
+                    Y.append(float(df["overall"]))
+
+            os.chdir("C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Q1")
+
+            # print("data loaded")
+
+            # cleaning
+            X = self.getStemmedDocuments(X, False)
+            X = self.remove_punctuations_tokenize(X)
+
+            # print(X[0])
+            # print(Y[0])
+
+            with open("NB_stemmed_train_summary.data", 'wb') as file:
+                pickle.dump([X, Y], file)
+
+            self.trainX = X
+            self.trainY = Y
+
+        else:
+            self.trainX, self.trainY = pickle.load(
+                open("NB_stemmed_train_summary.data", "rb"))
+
+        if not os.path.isfile("NB_stemmed_test_summary.data"):
+
+            os.chdir(
+                "C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Music_reviews_json/reviews_Digital_Music_5.json")
+
+            X = []
+            Y = []
+
+            # print(os.getcwd())
+
+            with open(self.path_test, "r") as f:
+                for line in f:
+                    df = json.loads(line)
+                    X.append(df["summary"])
+                    Y.append(float(df["overall"]))
+
+            os.chdir("C:/Users/Shubham/Desktop/Sem7/COL774_ML/Ass_2/Q1")
+
+            # print("data loaded")
+
+            # cleaning
+            X = self.getStemmedDocuments(X, False)
+            X = self.remove_punctuations_tokenize(X)
+
+            # print(X[0])
+            # print(Y[0])
+
+            with open("NB_stemmed_test_summary.data", 'wb') as file:
+                pickle.dump([X, Y], file)
+
+            self.testX = X
+            self.testY = Y
+
+        else:
+            self.testX, self.testY = pickle.load(
+                open("NB_stemmed_test_summary.data", "rb"))
+
+        print("Data loaded...")
+
+        if not os.path.isfile("stemmed_1f_NB.model"):
+            self.model = self.naiveBayes("stemmed_1f_NB.model")
+        else:
+            self.model = pickle.load(open("stemmed_1f_NB.model", "rb"))
+
+        # Predicting...
+
+        prior_probs = self.model[0]
+
+        # theta_list [dict(), dict(), dict(), dict(), dict()], each dict has words as keys and prob as value
+        theta_list = self.model[1]
+        total_unique_words_each_label = self.model[2]
+        total_unique_words = self.model[3]
+
+        # training data accuracy
+        train_data_prediction = self.predict(
+            self.trainX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.trainY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.trainY[i] == train_data_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+
+        train_accuracy = correct_predictions/len(self.trainY)
+        print("Accuracy on training data after Stemming and Stopwords removal with SUMMARY column:",
+              train_accuracy)
+
+        # test data accuracy
+        self.test_data_prediction = self.predict(
+            self.testX, total_unique_words, theta_list, prior_probs)
+
+        correct_predictions = 0
+
+        for i in range(len(self.testY)):
+            # output_file.write(str(labels_prediction[i]))
+            # output_file.write(" ")
+            if(self.testY[i] == self.test_data_prediction[i]):
+                correct_predictions += 1
+
+        # output_file.write('\n')
+        self.test_accuracy = correct_predictions/len(self.testY)
+        print("Accuracy on test data after Stemming and Stopwords removal with SUMMARY column:",
+              self.test_accuracy)
